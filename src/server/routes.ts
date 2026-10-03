@@ -300,7 +300,7 @@ apiRouter.post('/seed', async (req, res) => {
 });
 
 // POST /ml/predict - Direct ML Service Endpoint
-mlRouter.post('/predict', (req, res) => {
+mlRouter.post('/predict', async (req, res) => {
   const {
     landAreaHectares,
     familiesAffected,
@@ -310,6 +310,24 @@ mlRouter.post('/predict', (req, res) => {
     daysSinceLastUpdate,
     underArbitration,
   } = req.body as PredictRequest;
+
+  // If an external ML microservice URL is configured (e.g. FastAPI serving model.pkl)
+  const externalMlUrl = process.env.ML_SERVICE_URL;
+  if (externalMlUrl) {
+    try {
+      const response = await fetch(externalMlUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      });
+      if (response.ok) {
+        const customPred = await response.json();
+        return res.json(customPred);
+      }
+    } catch (err) {
+      console.warn('[ML Bridge] External ML service unreachable, falling back to built-in calibrated model:', err);
+    }
+  }
 
   const result = calculateRiskPrediction({
     landAreaHectares: Number(landAreaHectares) || 0,

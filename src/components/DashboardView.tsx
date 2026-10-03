@@ -40,12 +40,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="space-y-3.5">
       {/* Top Banner with Compact Earthy Color Blocking */}
       <div className="bg-[#4F5B2A] text-[#F5EFE3] border-2 border-[#4F5B2A] p-3 sm:p-3.5 shadow-[4px_4px_0px_0px_#B8892D] relative overflow-hidden">
-        {/* Geometric Corner Accents in Gold and Tan */}
-        <div className="absolute top-0 right-0 flex">
-          <div className="w-5 h-5 bg-[#B8892D]" />
-          <div className="w-5 h-5 bg-[#D8C9A8]" />
-        </div>
-
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
           <div>
             <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-[#F5EFE3]">
