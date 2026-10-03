@@ -7,7 +7,6 @@ An enterprise-grade land acquisition risk management and statutory lifecycle tra
 
 ## 🌐 Live URLs
 
-- **Application (Production Test URL)**: [https://ais-pre-3unjqvmxbssm3yy6fy74lt-283339838261.asia-southeast1.run.app](https://ais-pre-3unjqvmxbssm3yy6fy74lt-283339838261.asia-southeast1.run.app)
 - **Deployed ML Inference Service**: [https://dristi-model.onrender.com/](https://dristi-model.onrender.com/)
 - **Interactive OpenAPI Documentation**: [https://dristi-model.onrender.com/docs](https://dristi-model.onrender.com/docs)
 
