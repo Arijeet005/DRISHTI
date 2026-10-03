@@ -1,0 +1,8 @@
+{
+  "name": "DRISHTI - Data-driven Risk Intelligence System for Timely Intervention",
+  "description": "DRISHTI (दृष्टि) - Data-driven Risk Intelligence System for Timely Intervention. Machine learning risk prediction, statutory lifecycle tracking, and Clerk RBAC for land acquisition projects.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
+

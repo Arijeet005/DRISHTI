@@ -1,0 +1,11 @@
+name,state,district,landAreaHectares,familiesAffected,compensationStatus,approvalStage,legalDisputeFlag,underArbitration,daysSinceLastUpdate,riskCategory
+Highway Expansion Phase 1,Madhya Pradesh,Indore,120,340,Pending,PreliminaryNotification,TRUE,FALSE,95,High
+Irrigation Canal Extension,Maharashtra,Nagpur,45,80,Paid,PossessionTaken,FALSE,FALSE,10,Low
+Industrial Corridor A,Gujarat,Surat,300,600,PartiallyPaid,AwardAnnounced,TRUE,TRUE,120,High
+Urban Metro Line 3,Karnataka,Bengaluru,60,210,Paid,PossessionTaken,FALSE,FALSE,15,Low
+Rural Road Connectivity,Rajasthan,Jodhpur,25,50,PartiallyPaid,ObjectionsHearing,FALSE,FALSE,18,Medium
+Renewable Energy Park,Tamil Nadu,Coimbatore,150,90,Pending,Drafting,FALSE,FALSE,150,High
+River Bridge Project,Bihar,Patna,35,120,Paid,DeclarationVesting,TRUE,FALSE,80,Medium
+Port Expansion,Odisha,Paradip,200,400,Pending,PossessionTaken,TRUE,TRUE,200,High
+Water Supply Pipeline,Punjab,Ludhiana,18,40,Paid,PreliminaryNotification,FALSE,FALSE,5,Low
+Airport Runway Extension,Kerala,Kochi,90,150,PartiallyPaid,AwardAnnounced,FALSE,FALSE,45,Medium

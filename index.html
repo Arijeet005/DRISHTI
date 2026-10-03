@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DRISHTI - Data-driven Risk Intelligence System for Timely Intervention</title>
+    <meta name="description" content="DRISHTI (दृष्टि) - Data-driven Risk Intelligence System for Timely Intervention. Machine learning risk prediction, statutory lifecycle tracking, and Clerk RBAC for land acquisition projects." />
+    <meta property="og:title" content="DRISHTI - Data-driven Risk Intelligence System for Timely Intervention" />
+    <meta property="og:description" content="DRISHTI (दृष्टि) - Data-driven Risk Intelligence System for Timely Intervention. Machine learning risk prediction, statutory lifecycle tracking, and Clerk RBAC for land acquisition projects." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;700;900&family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+      // Compatibility guard for sandboxed iframe environments where window.fetch has only a getter
+      (function() {
+        try {
+          var origFetch = window.fetch;
+          var customFetch = origFetch;
+          try {
+            Object.defineProperty(window, 'fetch', {
+              get: function() { return customFetch; },
+              set: function(fn) { customFetch = fn; },
+              configurable: true,
+              enumerable: true
+            });
+          } catch (e1) {
+            if (typeof Window !== 'undefined' && Window.prototype) {
+              try {
+                Object.defineProperty(Window.prototype, 'fetch', {
+                  get: function() { return customFetch; },
+                  set: function(fn) { customFetch = fn; },
+                  configurable: true,
+                  enumerable: true
+                });
+              } catch (e2) {}
+            }
+          }
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-[#F5EFE3] text-[#4F5B2A] antialiased selection:bg-[#B8892D] selection:text-[#F5EFE3]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

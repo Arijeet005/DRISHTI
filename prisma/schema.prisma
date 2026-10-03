@@ -1,0 +1,62 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CompensationStatus {
+  Pending
+  PartiallyPaid
+  Paid
+}
+
+enum ApprovalStage {
+  Drafting
+  PreliminaryNotification
+  ObjectionsHearing
+  DeclarationVesting
+  AwardAnnounced
+  PossessionTaken
+}
+
+enum RiskCategory {
+  Low
+  Medium
+  High
+}
+
+model Project {
+  id                  String              @id @default(uuid())
+  name                String
+  state               String
+  district            String
+  landAreaHectares    Float
+  familiesAffected    Int
+  compensationStatus  CompensationStatus
+  approvalStage       ApprovalStage
+  legalDisputeFlag    Boolean             @default(false)
+  daysSinceLastUpdate Int
+  createdByClerkId    String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Stage 7: Independent Parallel Flag under Section 3G(5)
+  // Explicitly does NOT block or delay physical possession
+  underArbitration    Boolean             @default(false)
+  arbitrationRaisedAt DateTime?
+
+  // Statutory Deadline Tracking
+  preliminaryNotificationAt DateTime?
+  objectionsDeadlineAt      DateTime?
+  possessionNoticeAt        DateTime?
+  possessionDueAt           DateTime?
+
+  // ML-generated (Tier 1: score + category only)
+  riskScore    Float?
+  riskCategory RiskCategory?
+}
