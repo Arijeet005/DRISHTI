@@ -1,6 +1,7 @@
 import express from 'express';
-import { calculateRiskPrediction } from '../services/mlPredictor';
-import { ApprovalStage, PredictRequest } from '../types/project';
+import { calculateRiskPrediction, collapseToLegacyStage } from '../services/mlPredictor';
+import { build18Features, FEATURE_EXPLANATION_MAP, Raw18ModelFeatures } from '../services/ml18FeatureAdapter';
+import { ApprovalStage, PredictRequest, PredictResponse, RiskCategory } from '../types/project';
 import {
   dbFindMany,
   dbFindById,
@@ -30,6 +31,93 @@ function getRequestRole(req: express.Request): string {
   return 'Admin';
 }
 
+/**
+ * Unified Prediction Executor:
+ * 1. Derives the 18-feature vector required by models/pipeline_with_preprocessor.pkl.
+ * 2. Attempts inference via the FastAPI service (http://127.0.0.1:8000/predict or ML_SERVICE_URL).
+ * 3. Falls back smoothly to the calibrated engine if the Python service is offline.
+ */
+export async function executePrediction(input: any): Promise<PredictResponse & { raw18Features: Raw18ModelFeatures }> {
+  const features18 = build18Features(input);
+  const mlServiceUrl = process.env.ML_SERVICE_URL || 'https://dristi-model.onrender.com/predict';
+
+  try {
+    const res = await fetch(mlServiceUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(features18),
+      signal: AbortSignal.timeout(8000), // generous timeout for cloud hosted microservice
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const prob = Number(data.risk_probability) || 0;
+      const score = Math.min(100, Math.max(0, Math.round(prob * 100)));
+      const category = (data.delay_risk_level as RiskCategory) || (score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Low');
+      const topFactors = Array.isArray(data.top_risk_factors) ? data.top_risk_factors : [];
+
+      const factors = topFactors.map((f: any) => {
+        if (typeof f === 'object' && f !== null) {
+          return {
+            factor: f.display_name || f.feature?.replace(/^numeric__|^cat__/, '').replace(/_/g, ' ') || 'Attribution Factor',
+            impact: Math.round((Math.abs(f.contribution) || prob) * 100),
+            description: f.description || 'Model-attributed contribution from SHAP analysis',
+            severity: category === 'High' ? ('high' as const) : ('medium' as const),
+            direction: f.direction,
+          };
+        }
+        const meta = FEATURE_EXPLANATION_MAP[f] || {
+          label: String(f).replace(/_/g, ' ').toUpperCase(),
+          description: 'Model SHAP attribution factor from pipeline bundle',
+        };
+        return {
+          factor: meta.label,
+          impact: Math.round(prob * 20),
+          description: meta.description,
+          severity: category === 'High' ? ('high' as const) : ('medium' as const),
+        };
+      });
+
+      return {
+        riskScore: score,
+        riskCategory: category,
+        legacyMappedStage: collapseToLegacyStage(input.approvalStage || 'PreliminaryNotification'),
+        factors,
+        top_risk_factors: topFactors.map((item: any) => (typeof item === 'object' ? item.display_name || item.feature : String(item))),
+        model_version: data.model_version || '1.0.0',
+        raw18Features: features18,
+        source: `Live Render Service (${mlServiceUrl})`,
+      };
+    } else {
+      console.warn(`[ML Service] ${mlServiceUrl} returned status ${res.status}: ${await res.text()}`);
+    }
+  } catch (err: any) {
+    console.warn(`[ML Service] Error calling ${mlServiceUrl}, using calibrated fallback:`, err?.message || err);
+  }
+
+  // Fallback to calibrated procedural predictor
+  const calibrated = calculateRiskPrediction({
+    landAreaHectares: features18.land_area_hectares,
+    familiesAffected: features18.affected_families_count,
+    compensationStatus: input.compensationStatus || 'Pending',
+    approvalStage: input.approvalStage || 'PreliminaryNotification',
+    legalDisputeFlag: Boolean(input.legalDisputeFlag || features18.stay_order_present || features18.active_litigations_count > 0),
+    daysSinceLastUpdate: Number(input.daysSinceLastUpdate) || 30,
+    underArbitration: Boolean(input.underArbitration),
+  });
+
+  return {
+    riskScore: calibrated.riskScore,
+    riskCategory: calibrated.riskCategory,
+    legacyMappedStage: calibrated.legacyMappedStage,
+    factors: calibrated.factors,
+    top_risk_factors: ['active_litigations_count', 'compensation_disbursed_pct', 'forest_land_pct'],
+    model_version: 'calibrated-fallback-v1',
+    raw18Features: features18,
+    source: 'calibrated-engine',
+  };
+}
+
 // GET /api/projects - List all projects
 apiRouter.get('/projects', async (req, res) => {
   try {
@@ -53,7 +141,7 @@ apiRouter.get('/projects/:id', async (req, res) => {
   }
 });
 
-// POST /api/projects - Create project -> triggers ML prediction (Roles: Admin, Officer)
+// POST /api/projects - Create project -> triggers 18-feature model prediction
 apiRouter.post('/projects', async (req, res) => {
   const role = getRequestRole(req);
   if (role === 'Viewer') {
@@ -98,8 +186,12 @@ apiRouter.post('/projects', async (req, res) => {
     });
   }
 
-  // ML Risk Prediction
-  const prediction = calculateRiskPrediction({
+  // Execute prediction via 18-feature pipeline (or calibrated fallback)
+  const prediction = await executePrediction({
+    ...req.body,
+    name,
+    state,
+    district,
     landAreaHectares: Number(landAreaHectares) || 0,
     familiesAffected: Number(familiesAffected) || 0,
     compensationStatus: compensationStatus || 'Pending',
@@ -186,16 +278,8 @@ apiRouter.put('/projects/:id', async (req, res) => {
 
   const updatedData = { ...existing, ...req.body, approvalStage: targetStage, underArbitration: isArbRequested };
 
-  // Re-run ML Prediction with mapping layer and arbitration weight
-  const prediction = calculateRiskPrediction({
-    landAreaHectares: Number(updatedData.landAreaHectares) || 0,
-    familiesAffected: Number(updatedData.familiesAffected) || 0,
-    compensationStatus: updatedData.compensationStatus,
-    approvalStage: targetStage,
-    legalDisputeFlag: Boolean(updatedData.legalDisputeFlag),
-    daysSinceLastUpdate: Number(updatedData.daysSinceLastUpdate) || 0,
-    underArbitration: isArbRequested,
-  });
+  // Re-run inference with 18-feature pipeline
+  const prediction = await executePrediction(updatedData);
 
   try {
     const updated = await dbUpdate(req.params.id, {
@@ -215,7 +299,6 @@ apiRouter.put('/projects/:id', async (req, res) => {
 });
 
 // PATCH /api/projects/:id/arbitration - Dedicated endpoint for Stage 7 Parallel Arbitration Flag
-// Completely independent from stage order check; does NOT block PossessionTaken
 apiRouter.patch('/projects/:id/arbitration', async (req, res) => {
   const role = getRequestRole(req);
   if (role === 'Viewer') {
@@ -239,14 +322,9 @@ apiRouter.patch('/projects/:id/arbitration', async (req, res) => {
     });
   }
 
-  // Re-run ML Prediction
-  const prediction = calculateRiskPrediction({
-    landAreaHectares: existing.landAreaHectares,
-    familiesAffected: existing.familiesAffected,
-    compensationStatus: existing.compensationStatus,
-    approvalStage: existing.approvalStage,
-    legalDisputeFlag: existing.legalDisputeFlag,
-    daysSinceLastUpdate: existing.daysSinceLastUpdate,
+  // Re-run inference
+  const prediction = await executePrediction({
+    ...existing,
     underArbitration: newArbState,
   });
 
@@ -299,50 +377,12 @@ apiRouter.post('/seed', async (req, res) => {
   }
 });
 
-// POST /ml/predict - Direct ML Service Endpoint
+// POST /ml/predict - Direct ML Service Endpoint (accepts 18 raw features or high-level project parameters)
 mlRouter.post('/predict', async (req, res) => {
-  const {
-    landAreaHectares,
-    familiesAffected,
-    compensationStatus,
-    approvalStage,
-    legalDisputeFlag,
-    daysSinceLastUpdate,
-    underArbitration,
-  } = req.body as PredictRequest;
-
-  // If an external ML microservice URL is configured (e.g. FastAPI serving model.pkl)
-  const externalMlUrl = process.env.ML_SERVICE_URL;
-  if (externalMlUrl) {
-    try {
-      const response = await fetch(externalMlUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body),
-      });
-      if (response.ok) {
-        const customPred = await response.json();
-        return res.json(customPred);
-      }
-    } catch (err) {
-      console.warn('[ML Bridge] External ML service unreachable, falling back to built-in calibrated model:', err);
-    }
+  try {
+    const prediction = await executePrediction(req.body);
+    res.json(prediction);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Prediction failed', details: err?.message });
   }
-
-  const result = calculateRiskPrediction({
-    landAreaHectares: Number(landAreaHectares) || 0,
-    familiesAffected: Number(familiesAffected) || 0,
-    compensationStatus: compensationStatus || 'Pending',
-    approvalStage: approvalStage || 'Drafting',
-    legalDisputeFlag: Boolean(legalDisputeFlag),
-    daysSinceLastUpdate: Number(daysSinceLastUpdate) || 0,
-    underArbitration: Boolean(underArbitration),
-  });
-
-  res.json({
-    riskScore: result.riskScore,
-    riskCategory: result.riskCategory,
-    legacyMappedStage: result.legacyMappedStage,
-    factors: result.factors,
-  });
 });

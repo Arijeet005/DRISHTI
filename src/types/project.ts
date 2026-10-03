@@ -50,11 +50,40 @@ export interface PredictRequest {
   legalDisputeFlag: boolean;
   daysSinceLastUpdate: number;
   underArbitration?: boolean;
+
+  // Optional Granular 18-Feature Overrides (for models/pipeline_with_preprocessor.pkl)
+  project_type?: string;
+  state?: string;
+  total_parcels?: number;
+  private_land_pct?: number;
+  forest_land_pct?: number;
+  govt_land_pct?: number;
+  rr_settlement_status?: string;
+  forest_clearance_stage?: string;
+  env_clearance_stage?: string;
+  circle_rate_per_sqm?: number;
+  compensation_disbursed_pct?: number;
+  cadastral_survey_discrepancy?: number;
+  active_litigations_count?: number;
+  stay_order_present?: number;
+  inter_agency_nocs_pending?: number;
+  historical_district_delay_score?: number;
 }
 
 export interface PredictResponse {
   riskScore: number;
   riskCategory: RiskCategory;
+  legacyMappedStage?: string;
+  factors?: Array<{
+    factor: string;
+    impact: number;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+  }>;
+  top_risk_factors?: string[];
+  model_version?: string;
+  raw18Features?: Record<string, any>;
+  source?: string;
 }
 
 export interface UserSession {
