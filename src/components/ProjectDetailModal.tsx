@@ -15,6 +15,7 @@ import {
   Calendar,
   Clock,
   AlertTriangle,
+  MessageSquare,
 } from 'lucide-react';
 
 interface ProjectDetailModalProps {
@@ -22,6 +23,7 @@ interface ProjectDetailModalProps {
   onClose: () => void;
   onEdit: (project: Project) => void;
   onProjectUpdated?: (updated: Project) => void;
+  onAskAssistant?: (project: Project) => void;
 }
 
 export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
@@ -29,6 +31,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
   onClose,
   onEdit,
   onProjectUpdated,
+  onAskAssistant,
 }) => {
   const { role } = useAuth();
   const [isUpdatingArb, setIsUpdatingArb] = useState(false);
@@ -337,6 +340,19 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onAskAssistant && (
+              <button
+                id="modal-ask-ai-btn"
+                onClick={() => {
+                  onClose();
+                  onAskAssistant(project);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#B8892D] text-[#F5EFE3] border-2 border-[#4F5B2A] font-bold uppercase text-xs shadow-[2px_2px_0px_0px_#4F5B2A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:brightness-105 whitespace-nowrap shrink-0 transition-all"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Ask AI</span>
+              </button>
+            )}
             {canEdit && (
               <button
                 id="modal-edit-project-btn"

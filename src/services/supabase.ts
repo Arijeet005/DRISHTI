@@ -21,7 +21,22 @@ export const SUPABASE_KEY =
       (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) ||
   'sb_publishable_6pzFCK14vsX8MbkWqHjHfA_FqL-8UHP';
 
-export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  if (init?.signal) {
+    return fetch(input, init);
+  }
+  const signal =
+    typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+      ? AbortSignal.timeout(2500)
+      : undefined;
+  return fetch(input, { ...init, signal });
+};
+
+export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: {
+    fetch: fetchWithTimeout,
+  },
+});
 
 export const isSupabaseConfigured = Boolean(
   SUPABASE_URL &&

@@ -30,7 +30,7 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss(), expressApiPlugin()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {

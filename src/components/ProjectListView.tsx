@@ -38,6 +38,7 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({
   const [stageFilter, setStageFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'riskScore' | 'landAreaHectares' | 'familiesAffected' | 'daysSinceLastUpdate'>('riskScore');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const canEdit = role === 'Admin' || role === 'Officer';
   const canDelete = role === 'Admin';
@@ -328,20 +329,37 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({
                           )}
 
                           {canDelete && (
-                            <button
-                              id={`delete-btn-${p._id}`}
-                              onClick={() => {
-                                if (
-                                  confirm(`Are you sure you want to delete "${p.name}"?`)
-                                ) {
-                                  onDeleteProject(p._id);
-                                }
-                              }}
-                              className="p-1 bg-[#A8442E] text-[#F5EFE3] border border-[#4F5B2A] shadow-[1px_1px_0px_0px_#4F5B2A] hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
-                              title="Delete Project (Admin Role)"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            confirmDeleteId === p._id ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  id={`confirm-delete-btn-${p._id}`}
+                                  onClick={() => {
+                                    setConfirmDeleteId(null);
+                                    onDeleteProject(p._id);
+                                  }}
+                                  className="px-1.5 py-0.5 bg-[#A8442E] text-[#F5EFE3] border border-[#4F5B2A] font-black uppercase text-[9px] shadow-[1px_1px_0px_0px_#4F5B2A] hover:brightness-110"
+                                  title="Confirm Delete"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="px-1.5 py-0.5 bg-[#F5EFE3] text-[#4F5B2A] border border-[#4F5B2A] font-bold uppercase text-[9px] hover:bg-[#D8C9A8]"
+                                  title="Cancel Delete"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                id={`delete-btn-${p._id}`}
+                                onClick={() => setConfirmDeleteId(p._id)}
+                                className="p-1 bg-[#A8442E] text-[#F5EFE3] border border-[#4F5B2A] shadow-[1px_1px_0px_0px_#4F5B2A] hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                                title="Delete Project (Admin Role)"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )
                           )}
                         </div>
                       </td>

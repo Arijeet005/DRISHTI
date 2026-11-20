@@ -185,7 +185,10 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       legalDisputeFlag,
       daysSinceLastUpdate: Number(daysSinceLastUpdate),
       underArbitration: isArbitrationAdmissible ? underArbitration : false,
-      arbitrationRaisedAt: underArbitration ? new Date().toISOString() : null,
+      arbitrationRaisedAt:
+        isArbitrationAdmissible && underArbitration
+          ? project?.arbitrationRaisedAt || new Date().toISOString()
+          : null,
       preliminaryNotificationAt: prelimNotificationDate ? new Date(prelimNotificationDate).toISOString() : null,
       objectionsDeadlineAt: calculatedObjectionsDeadline,
       possessionNoticeAt: possessionNoticeDate ? new Date(possessionNoticeDate).toISOString() : null,

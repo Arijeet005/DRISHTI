@@ -4,6 +4,18 @@ import { INITIAL_SAMPLE_PROJECTS } from '../data/sampleProjects';
 
 const STORAGE_KEY = 'landacq_tier1_projects_v1';
 
+function getCurrentRoleHeader(): string {
+  try {
+    const saved = localStorage.getItem('landacq_user_role');
+    if (saved === 'Admin' || saved === 'Officer' || saved === 'Viewer') {
+      return saved;
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return 'Admin';
+}
+
 function getLocalProjects(): Project[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -59,7 +71,10 @@ export const api = {
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': getCurrentRoleHeader(),
+        },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
@@ -68,8 +83,14 @@ export const api = {
         saveLocalProjects([created, ...current]);
         return created;
       }
-    } catch {
-      // Local fallback
+      if (res.status >= 400 && res.status < 500) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to create project');
+      }
+    } catch (err: any) {
+      if (err?.message && !err.message.toLowerCase().includes('fetch')) {
+        throw err;
+      }
     }
 
     // Local fallback creation
@@ -80,6 +101,7 @@ export const api = {
       approvalStage: payload.approvalStage,
       legalDisputeFlag: payload.legalDisputeFlag,
       daysSinceLastUpdate: payload.daysSinceLastUpdate,
+      underArbitration: payload.underArbitration,
     });
 
     const now = new Date().toISOString();
@@ -102,7 +124,10 @@ export const api = {
     try {
       const res = await fetch(`/api/projects/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': getCurrentRoleHeader(),
+        },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
@@ -112,8 +137,14 @@ export const api = {
         saveLocalProjects(updatedList);
         return updatedProj;
       }
-    } catch {
-      // Local fallback
+      if (res.status >= 400 && res.status < 500) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to update project');
+      }
+    } catch (err: any) {
+      if (err?.message && !err.message.toLowerCase().includes('fetch')) {
+        throw err;
+      }
     }
 
     const current = getLocalProjects();
@@ -130,6 +161,7 @@ export const api = {
       approvalStage: merged.approvalStage,
       legalDisputeFlag: merged.legalDisputeFlag,
       daysSinceLastUpdate: merged.daysSinceLastUpdate,
+      underArbitration: merged.underArbitration,
     });
 
     const updatedProject: Project = {
@@ -148,7 +180,10 @@ export const api = {
     try {
       const res = await fetch(`/api/projects/${id}/arbitration`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': getCurrentRoleHeader(),
+        },
         body: JSON.stringify({ underArbitration }),
       });
       if (res.ok) {
@@ -159,11 +194,11 @@ export const api = {
         saveLocalProjects(updatedList);
         return updatedProj;
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || 'Failed to update arbitration status');
       }
     } catch (err: any) {
-      if (err.message && !err.message.includes('fetch')) {
+      if (err.message && !err.message.toLowerCase().includes('fetch')) {
         throw err;
       }
     }
@@ -186,9 +221,20 @@ export const api = {
 
   async deleteProject(id: string): Promise<void> {
     try {
-      await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-    } catch {
-      // Local fallback
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-role': getCurrentRoleHeader(),
+        },
+      });
+      if (!res.ok && res.status >= 400 && res.status < 500) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to delete project');
+      }
+    } catch (err: any) {
+      if (err?.message && !err.message.toLowerCase().includes('fetch')) {
+        throw err;
+      }
     }
     const current = getLocalProjects();
     saveLocalProjects(current.filter((p) => p._id !== id));
@@ -212,11 +258,37 @@ export const api = {
 
   async resetToSample(): Promise<Project[]> {
     try {
-      await fetch('/api/seed', { method: 'POST' });
+      const res = await fetch('/api/seed', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.projects)) {
+          saveLocalProjects(data.projects);
+          return data.projects;
+        }
+      }
     } catch {
       // Local fallback
     }
     saveLocalProjects(INITIAL_SAMPLE_PROJECTS);
     return INITIAL_SAMPLE_PROJECTS;
+  },
+
+  async chat(payload: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    activeProjectId?: string | null;
+  }): Promise<{ reply: string; toolsUsed: string[]; model: string }> {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-role': getCurrentRoleHeader(),
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `Chat request failed (${res.status})`);
+    }
+    return data;
   },
 };

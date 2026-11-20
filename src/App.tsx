@@ -9,6 +9,7 @@ import { ProjectDetailModal } from './components/ProjectDetailModal';
 import { ProjectFormModal } from './components/ProjectFormModal';
 import { MlSimulatorView } from './components/MlSimulatorView';
 import { RoleSwitchModal } from './components/RoleSwitchModal';
+import { DrishtiAssistant } from './components/DrishtiAssistant';
 import { CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
 function AppContent() {
@@ -22,6 +23,9 @@ function AppContent() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState<boolean>(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
+  const [assistantContextProject, setAssistantContextProject] = useState<Project | null>(null);
+  const [assistantInitialPrompt, setAssistantInitialPrompt] = useState<string | null>(null);
 
   // Notification toast
   const [toastMessage, setToastMessage] = useState<{
@@ -62,9 +66,9 @@ function AppContent() {
         'success'
       );
       setCurrentTab('projects');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating project:', err);
-      showToast('Failed to create project', 'error');
+      showToast(err?.message || 'Failed to create project', 'error');
     }
   };
 
@@ -94,9 +98,9 @@ function AppContent() {
       if (selectedProject?._id === projectId) {
         setSelectedProject(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting project:', err);
-      showToast('Failed to delete project', 'error');
+      showToast(err?.message || 'Failed to delete project', 'error');
     }
   };
 
@@ -131,6 +135,12 @@ function AppContent() {
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
+        onOpenAssistant={() => {
+          if (selectedProject) {
+            setAssistantContextProject(selectedProject);
+          }
+          setIsAssistantOpen(true);
+        }}
       />
 
       {/* Floating Notification Toast */}
@@ -225,6 +235,13 @@ function AppContent() {
           setProjects((prev) => prev.map((item) => (item._id === updated._id ? updated : item)));
           showToast('Updated arbitration status under Section 3G(5)', 'success');
         }}
+        onAskAssistant={(p) => {
+          setAssistantContextProject(p);
+          setAssistantInitialPrompt(
+            `Analyze the delay risks, statutory stage, and recommended interventions for "${p.name}".`
+          );
+          setIsAssistantOpen(true);
+        }}
       />
 
       <ProjectFormModal
@@ -240,6 +257,15 @@ function AppContent() {
       <RoleSwitchModal
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
+      />
+
+      <DrishtiAssistant
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        contextProject={assistantContextProject}
+        onClearContextProject={() => setAssistantContextProject(null)}
+        initialPrompt={assistantInitialPrompt}
+        onConsumeInitialPrompt={() => setAssistantInitialPrompt(null)}
       />
     </div>
   );
