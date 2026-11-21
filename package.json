@@ -4,10 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "prisma generate",
+    "predev": "node ./node_modules/prisma/build/index.js generate",
     "dev": "vite --configLoader runner --port=3000 --host=0.0.0.0",
-    "prestart": "prisma generate",
-    "build": "vite build --configLoader runner",
+    "build": "node ./node_modules/prisma/build/index.js generate && vite build --configLoader runner",
     "start": "node ./node_modules/tsx/dist/cli.mjs server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
