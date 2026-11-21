@@ -9,6 +9,7 @@ import { ProjectDetailModal } from './components/ProjectDetailModal';
 import { ProjectFormModal } from './components/ProjectFormModal';
 import { MlSimulatorView } from './components/MlSimulatorView';
 import { RoleSwitchModal } from './components/RoleSwitchModal';
+import { ChatbotPanel } from './components/ChatbotPanel';
 import { CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
 function AppContent() {
@@ -22,6 +23,7 @@ function AppContent() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
 
   // Notification toast
   const [toastMessage, setToastMessage] = useState<{
@@ -131,6 +133,7 @@ function AppContent() {
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
+        onOpenChat={() => setIsChatOpen(true)}
       />
 
       {/* Floating Notification Toast */}
@@ -213,6 +216,8 @@ function AppContent() {
       </footer>
 
       {/* Modals */}
+      {isChatOpen && <ChatbotPanel onClose={() => setIsChatOpen(false)} />}
+
       <ProjectDetailModal
         project={selectedProject}
         onClose={() => setSelectedProject(null)}

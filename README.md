@@ -124,6 +124,9 @@ DATABASE_URL="postgresql://postgres:password@your-db.supabase.co:5432/postgres"
 
 # Machine Learning Inference Service (Live Render URL)
 ML_SERVICE_URL="https://dristi-model.onrender.com/predict"
+
+# Gemini AI assistant (server-side only; do not use a VITE_ prefix)
+GEMINI_API_KEY="your-gemini-api-key"
 ```
 
 ---

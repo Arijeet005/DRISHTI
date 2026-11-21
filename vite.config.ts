@@ -1,11 +1,14 @@
+import 'dotenv/config';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import {fileURLToPath} from 'node:url';
 import express from 'express';
 import {defineConfig, type Plugin} from 'vite';
 import {apiRouter, mlRouter} from './src/server/routes';
 
 const apiApp = express();
+const configDir = path.dirname(fileURLToPath(import.meta.url));
 apiApp.use(express.json());
 apiApp.use('/api', apiRouter);
 apiApp.use('/ml', mlRouter);
@@ -30,7 +33,7 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss(), expressApiPlugin()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(configDir, '.'),
       },
     },
     server: {

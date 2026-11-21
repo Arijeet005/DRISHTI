@@ -1,17 +1,19 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Plus, LayoutDashboard, Database, Cpu, UserCheck } from 'lucide-react';
+import { Plus, LayoutDashboard, Database, Cpu, UserCheck, MessageCircle } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: 'dashboard' | 'projects' | 'new' | 'ml';
   onSelectTab: (tab: 'dashboard' | 'projects' | 'new' | 'ml') => void;
   onOpenRoleModal: () => void;
+  onOpenChat: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentTab,
   onSelectTab,
   onOpenRoleModal,
+  onOpenChat,
 }) => {
   const { user, role } = useAuth();
 
@@ -94,57 +96,69 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Navigation Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none">
-          <button
-            id="nav-tab-dashboard"
-            onClick={() => onSelectTab('dashboard')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
-              currentTab === 'dashboard'
-                ? 'bg-[#4F5B2A] text-[#F5EFE3] shadow-[3px_3px_0px_0px_#B8892D] -translate-y-0.5'
-                : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
-          </button>
+        <div className="flex items-center justify-between gap-2 pb-1.5 pt-0.5">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto scrollbar-none">
+            <button
+              id="nav-tab-dashboard"
+              onClick={() => onSelectTab('dashboard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
+                currentTab === 'dashboard'
+                  ? 'bg-[#4F5B2A] text-[#F5EFE3] shadow-[3px_3px_0px_0px_#B8892D] -translate-y-0.5'
+                  : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Dashboard</span>
+            </button>
 
-          <button
-            id="nav-tab-projects"
-            onClick={() => onSelectTab('projects')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
-              currentTab === 'projects'
-                ? 'bg-[#4F5B2A] text-[#F5EFE3] shadow-[3px_3px_0px_0px_#B8892D] -translate-y-0.5'
-                : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>Project Registry</span>
-          </button>
+            <button
+              id="nav-tab-projects"
+              onClick={() => onSelectTab('projects')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
+                currentTab === 'projects'
+                  ? 'bg-[#4F5B2A] text-[#F5EFE3] shadow-[3px_3px_0px_0px_#B8892D] -translate-y-0.5'
+                  : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Project Registry</span>
+            </button>
 
-          <button
-            id="nav-tab-new-project"
-            onClick={() => onSelectTab('new')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
-              currentTab === 'new'
-                ? 'bg-[#B8892D] text-[#F5EFE3] shadow-[3px_3px_0px_0px_#4F5B2A] -translate-y-0.5'
-                : 'bg-[#B8892D] text-[#F5EFE3] hover:opacity-90 shadow-[2px_2px_0px_0px_#4F5B2A]'
-            }`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>+ Add Project</span>
-          </button>
+            <button
+              id="nav-tab-new-project"
+              onClick={() => onSelectTab('new')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
+                currentTab === 'new'
+                  ? 'bg-[#B8892D] text-[#F5EFE3] shadow-[3px_3px_0px_0px_#4F5B2A] -translate-y-0.5'
+                  : 'bg-[#B8892D] text-[#F5EFE3] hover:opacity-90 shadow-[2px_2px_0px_0px_#4F5B2A]'
+              }`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Add Project</span>
+            </button>
 
+            <button
+              id="nav-tab-ml-simulator"
+              onClick={() => onSelectTab('ml')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
+                currentTab === 'ml'
+                  ? 'bg-[#D8C9A8] text-[#4F5B2A] shadow-[3px_3px_0px_0px_#4F5B2A] -translate-y-0.5 font-black'
+                  : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>ML /predict API</span>
+            </button>
+          </div>
           <button
-            id="nav-tab-ml-simulator"
-            onClick={() => onSelectTab('ml')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
-              currentTab === 'ml'
-                ? 'bg-[#D8C9A8] text-[#4F5B2A] shadow-[3px_3px_0px_0px_#4F5B2A] -translate-y-0.5 font-black'
-                : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
-            }`}
+            id="nav-open-chat"
+            onClick={onOpenChat}
+            className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] bg-[#B8892D] text-[#F5EFE3] shadow-[2px_2px_0px_0px_#4F5B2A] hover:-translate-y-0.5 transition-all"
+            aria-label="Open DRISHTI AI assistant"
           >
-            <Cpu className="w-3.5 h-3.5" />
-            <span>ML /predict API</span>
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">AI Assistant</span>
+            <span className="sm:hidden">AI</span>
           </button>
         </div>
       </div>

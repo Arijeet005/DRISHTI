@@ -14,6 +14,85 @@ import {
 export const apiRouter = express.Router();
 export const mlRouter = express.Router();
 
+apiRouter.post('/chat', async (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({
+      error: 'Gemini is not configured. Add GEMINI_API_KEY to .env and restart the app.',
+    });
+  }
+
+  const messages = req.body?.messages;
+  if (
+    !Array.isArray(messages) ||
+    messages.length === 0 ||
+    messages.length > 20 ||
+    messages.some(
+      (message: any) =>
+        !message ||
+        !['user', 'model'].includes(message.role) ||
+        typeof message.text !== 'string' ||
+        !message.text.trim() ||
+        message.text.length > 4000
+    ) ||
+    messages[messages.length - 1]?.role !== 'user'
+  ) {
+    return res.status(400).json({ error: 'Send up to 20 non-empty chat messages, with your latest message last.' });
+  }
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash-lite',
+        input: messages.map((message: { role: 'user' | 'model'; text: string }) => ({
+          type: message.role === 'user' ? 'user_input' : 'model_output',
+          content: [{ type: 'text', text: message.text }],
+        })),
+        system_instruction:
+          'You are the DRISHTI assistant for a land-acquisition risk intelligence app. Give clear, concise, practical answers. Do not claim access to live project or database records unless they are provided in the conversation. Do not invent legal advice; recommend consulting a qualified professional for case-specific legal decisions.',
+      }),
+      signal: AbortSignal.timeout(100000),
+    });
+
+    const responseBody = await response.text();
+    if (!response.ok) {
+      console.warn(`[Gemini] Interactions API returned ${response.status}: ${responseBody.slice(0, 500)}`);
+      if (response.status === 429 || response.status === 503) {
+        return res.status(503).json({ error: 'Gemini is temporarily busy or rate-limited. Please try again shortly.' });
+      }
+      return res.status(502).json({ error: `Gemini request failed (HTTP ${response.status}). Please try again later.` });
+    }
+
+    const result = JSON.parse(responseBody) as {
+      steps?: Array<{
+        type?: string;
+        content?: Array<{ type?: string; text?: string }>;
+      }>;
+    };
+    const reply = (result.steps || [])
+      .filter((step) => step.type === 'model_output')
+      .flatMap((step) => step.content || [])
+      .filter((content) => content.type === 'text' && content.text)
+      .map((content) => content.text)
+      .join('')
+      .trim();
+
+    if (!reply) {
+      return res.status(502).json({ error: 'Gemini returned an empty response. Please try again.' });
+    }
+
+    res.json({ reply });
+  } catch (error) {
+    console.error('[Gemini] Chat request failed:', error);
+    res.status(502).json({ error: 'The AI assistant could not respond. Please try again shortly.' });
+  }
+});
+
 export const STAGE_ORDER: ApprovalStage[] = [
   'Drafting',
   'PreliminaryNotification',
