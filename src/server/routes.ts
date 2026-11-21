@@ -10,7 +10,6 @@ import {
   dbDelete,
   dbResetSeed,
 } from './db';
-import { GeminiConfigError, handleDrishtiChat } from './geminiChat';
 
 export const apiRouter = express.Router();
 export const mlRouter = express.Router();
@@ -375,28 +374,6 @@ apiRouter.post('/seed', async (req, res) => {
     res.json({ message: 'Seeded successfully', count: refreshed.length, projects: refreshed });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to reset seed', details: err?.message });
-  }
-});
-
-// POST /api/chat - Server-side Gemini AI Assistant for DRISHTI
-apiRouter.post('/chat', async (req, res) => {
-  try {
-    const role = getRequestRole(req);
-    const { messages, activeProjectId } = req.body || {};
-    const result = await handleDrishtiChat(
-      {
-        messages,
-        activeProjectId: activeProjectId || null,
-        userRole: role,
-      },
-      executePrediction
-    );
-    res.json(result);
-  } catch (err: any) {
-    if (err instanceof GeminiConfigError) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    res.status(500).json({ error: err?.message || 'Chat request failed' });
   }
 });
 

@@ -1,19 +1,17 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Plus, LayoutDashboard, Database, Cpu, UserCheck, MessageSquare } from 'lucide-react';
+import { Plus, LayoutDashboard, Database, Cpu, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: 'dashboard' | 'projects' | 'new' | 'ml';
   onSelectTab: (tab: 'dashboard' | 'projects' | 'new' | 'ml') => void;
   onOpenRoleModal: () => void;
-  onOpenAssistant: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentTab,
   onSelectTab,
   onOpenRoleModal,
-  onOpenAssistant,
 }) => {
   const { user, role } = useAuth();
 
@@ -139,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="nav-tab-ml-simulator"
             onClick={() => onSelectTab('ml')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] whitespace-nowrap shrink-0 transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] transition-all ${
               currentTab === 'ml'
                 ? 'bg-[#D8C9A8] text-[#4F5B2A] shadow-[3px_3px_0px_0px_#4F5B2A] -translate-y-0.5 font-black'
                 : 'bg-[#F5EFE3] text-[#4F5B2A] hover:bg-[#D8C9A8]'
@@ -147,15 +145,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Cpu className="w-3.5 h-3.5" />
             <span>ML /predict API</span>
-          </button>
-
-          <button
-            id="nav-open-assistant-btn"
-            onClick={onOpenAssistant}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-2 border-[#4F5B2A] bg-[#4F5B2A] text-[#F5EFE3] shadow-[2px_2px_0px_0px_#B8892D] hover:brightness-110 whitespace-nowrap shrink-0 ml-auto transition-all"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-[#B8892D]" />
-            <span>AI Assistant</span>
           </button>
         </div>
       </div>

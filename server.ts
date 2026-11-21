@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,10 +12,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use('/api', apiRouter);
 app.use('/ml', mlRouter);
-
-app.use(['/api', '/ml'], (_req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
 
 // Serve static build assets if available
 const distPath = path.join(__dirname, 'dist');
