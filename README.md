@@ -1,180 +1,155 @@
 # DRISHTI (दृष्टि)
-### Data-driven Risk Intelligence System for Timely Intervention
 
-An enterprise-grade land acquisition risk management and statutory lifecycle tracking platform designed for Indian infrastructure projects governed by the **RFCTLARR Act, 2013** and the **National Highways Act, 1956**.
+**Data-driven Risk Intelligence System for Timely Intervention**
 
----
+DRISHTI is a land-acquisition project tracking and risk-assessment application for Indian infrastructure projects. It combines a project dashboard, statutory-stage tracking, risk predictions, and a Gemini-powered assistant.
 
-## 🌐 Live URLs
+## Live deployments
 
-- **Deployed ML Inference Service**: [https://dristi-model.onrender.com/](https://dristi-model.onrender.com/)
-- **Interactive OpenAPI Documentation**: [https://dristi-model.onrender.com/docs](https://dristi-model.onrender.com/docs)
+| Service | URL |
+|---|---|
+| DRISHTI web app and Express API (AWS EC2) | [http://3.106.184.56:3000/](http://3.106.184.56:3000/) |
+| ML service health | [https://dristi-model.onrender.com/health](https://dristi-model.onrender.com/health) |
+| ML service readiness | [https://dristi-model.onrender.com/ready](https://dristi-model.onrender.com/ready) |
+| ML service API documentation | [https://dristi-model.onrender.com/docs](https://dristi-model.onrender.com/docs) |
 
----
+The EC2 address is an HTTP URL and may change if the instance's public IP changes. Use an Elastic IP and configure HTTPS/domain routing before treating it as a stable production URL. The ML service is hosted separately on Render.
 
-## 🏛️ Statutory 7-Stage Legal Framework
+## Features
 
-DRISHTI enforces statutory compliance and procedural gating across all phases of land acquisition:
+- Portfolio dashboard with project totals, risk categories, land area, affected-family counts, and critical-project summaries.
+- Project registry with create, edit, search, filter, and detail views.
+- Six-stage acquisition workflow: `Drafting`, `PreliminaryNotification`, `ObjectionsHearing`, `DeclarationVesting`, `AwardAnnounced`, and `PossessionTaken`.
+- Parallel Section 3G(5) arbitration tracking, available from `AwardAnnounced` onward without blocking possession-stage progression.
+- Risk assessment from project attributes, including a bridge to an 18-feature ML input schema.
+- Gemini assistant for general DRISHTI and land-acquisition risk questions. The Gemini key is read by the server and must not be exposed as a `VITE_` variable.
+- Seed/reference project data for demonstration.
 
-| Stage # | Stage Key | Statutory Authority | Legal Milestones & Requirements |
-|---|---|---|---|
-| **Stage 1** | `Drafting` | Sec. 4, RFCTLARR | Feasibility assessment, SIA (Social Impact Assessment) preparation |
-| **Stage 2** | `PreliminaryNotification` | Sec. 11 / Sec. 3A | Gazette notification published; 21-day objection clock initiates |
-| **Stage 3** | `ObjectionsHearing` | Sec. 15 / Sec. 3C | CALA hearing of khatedar objections, valuation grievances |
-| **Stage 4** | `DeclarationVesting` | Sec. 19 / Sec. 3D | Formal declaration; land vests absolutely in the State free from encumbrances |
-| **Stage 5** | `AwardAnnounced` | Sec. 23 / Sec. 3G | Competent authority determines compensation matrix and solatium |
-| **Stage 6** | `PossessionTaken` | Sec. 38 / Sec. 3E | 60-day notice period completed; physical possession surrendered |
-| **Stage 7** | `underArbitration` | Sec. 3G(5) NH Act | **Parallel Non-Blocking Dispute Track**: Khatedars contest compensation quantum before Central Arbitrator without halting physical possession |
+## Technology
 
----
+| Area | Technologies |
+|---|---|
+| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4 |
+| UI | Lucide React, Motion, React Markdown |
+| Application server/API | Node.js, Express 4, `tsx` |
+| Data layer | Supabase JavaScript client, PostgreSQL, Prisma 6 |
+| Risk inference | Python, FastAPI, Pydantic; a separately hosted inference service plus a TypeScript fallback |
+| AI assistant | Google Gemini Interactions API |
+| Deployment | AWS EC2, Docker |
 
-## 🧠 Machine Learning Risk Intelligence
+## Architecture and implementation notes
 
-The platform integrates a machine learning pipeline bundled into `models/pipeline_with_preprocessor.pkl` and hosted live at Render.
+The Express application serves the compiled Vite frontend from `dist` and mounts the application endpoints under `/api` and the prediction endpoint under `/ml`. The ML service is a separate FastAPI deployment; the Express server forwards prediction requests to `ML_SERVICE_URL`.
 
-### Model Architecture
-- **Classifier**: `RandomForestClassifier` predicting categorical delay risk (`Low`, `Medium`, `High`).
-- **Regressor**: `XGBRegressor` wrapped by `ClippedRegressor` calculating continuous `risk_probability` score in range `[0.0, 1.0]`.
-- **Explainability**: SHAP (SHapley Additive exPlanations) generating model-attributed feature contributions for each prediction.
+The application currently attempts Supabase first, then Prisma/PostgreSQL, and falls back to in-memory sample data when those services are unavailable. In-memory changes are not durable across server restarts. Configure and verify the database before relying on persistent project records.
 
-### 18-Feature Input Contract
-The ML model expects these 18 raw features:
+The prediction path attempts the configured ML service and falls back to a deterministic TypeScript scoring calculation if the service cannot be reached. A prediction response alone does not prove that a trained model handled it; check the ML service's `/ready` response and the response's model/source fields.
+
+**Demo limitations:** the current role switch is simulated in the frontend, not authenticated production Clerk RBAC. The API also has demo role handling and should not be exposed as a secure multi-user system without proper server-side authentication and authorization. The sample dataset and risk outputs are for demonstration, not legal or financial advice.
+
+## API endpoints
+
+The application API base is `http://3.106.184.56:3000` (replace it with your deployment base URL).
+
+### Express application API
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/projects` | List projects |
+| `GET` | `/api/projects/:id` | Get a project |
+| `POST` | `/api/projects` | Create a project and calculate its risk |
+| `PUT` | `/api/projects/:id` | Update a project and recalculate risk |
+| `PATCH` | `/api/projects/:id/arbitration` | Update the arbitration flag |
+| `DELETE` | `/api/projects/:id` | Delete a project |
+| `POST` | `/api/seed` | Reset/repopulate sample project data |
+| `POST` | `/api/chat` | Send chat history to Gemini and return an assistant reply |
+| `POST` | `/ml/predict` | Request a risk prediction through the configured ML service/fallback |
+
+`POST /api/seed` is a data-reset operation. Do not expose it to untrusted users.
+
+Example chat request:
 
 ```json
 {
-  "project_type": "Industrial Corridor",
-  "state": "Tamil Nadu",
-  "land_area_hectares": 73.73,
-  "total_parcels": 204,
-  "private_land_pct": 34.32,
-  "forest_land_pct": 23.28,
-  "govt_land_pct": 42.39,
-  "affected_families_count": 30,
-  "rr_settlement_status": "Mostly Completed",
-  "forest_clearance_stage": "Stage-1 Approved",
-  "env_clearance_stage": "EC Granted",
-  "circle_rate_per_sqm": 10428.31,
-  "compensation_disbursed_pct": 46.49,
-  "cadastral_survey_discrepancy": 0,
-  "active_litigations_count": 2,
-  "stay_order_present": 0,
-  "inter_agency_nocs_pending": 0,
-  "historical_district_delay_score": 0.4664
+  "messages": [
+    { "role": "user", "text": "What does the arbitration flag mean?" }
+  ]
 }
 ```
 
-### Automatic 18-Feature Translation Bridge
-The application bridges standard project records (`landAreaHectares`, `compensationStatus`, `approvalStage`, `legalDisputeFlag`, etc.) into this 18-feature vector, allowing prediction without manual data entry.
+### Python ML service
 
----
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Service health |
+| `GET` | `/ready` | Readiness/model status |
+| `POST` | `/predict` | Predict from the 18-feature input schema |
+| `GET` | `/docs` | Interactive OpenAPI/Swagger documentation |
 
-## 🔒 Role-Based Access Control (RBAC)
+The project-level `/ml/predict` endpoint accepts project attributes or the ML feature payload and adapts the result for the application.
 
-DRISHTI supports granular role-based permissions (integrated with Clerk authentication):
+## Configuration
 
-- **Admin**: Full administrative permissions — create, edit, delete projects, and override stage sequencing when authorized.
-- **Officer**: High-level authority — advance projects through statutory stages and manage arbitration proceedings.
-- **Clerk**: Operational authority — update project records, record compensation disbursement, and input cadastral surveys.
-- **Viewer**: Read-only stakeholder access across all portfolios and risk dashboards.
+Create a local `.env` file using `.env.example` as a reference. Set deployment variables in the hosting provider or container runtime. Do not commit `.env`, private keys, or API secrets.
 
----
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable client key |
+| `DATABASE_URL` | PostgreSQL connection string used by Prisma |
+| `ML_SERVICE_URL` | Full URL for the FastAPI prediction endpoint, e.g. `https://dristi-model.onrender.com/predict` |
+| `GEMINI_API_KEY` | Server-side Google Gemini API key |
+| `PORT` | Express listening port; defaults to `3000` |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Optional frontend setting; current role selection remains simulated |
 
-## 📁 Repository Structure
+## Run locally
+
+Requirements: Node.js 22 or newer and npm.
+
+```bash
+npm ci
+```
+
+Copy `.env.example` to `.env`, configure the services you intend to use, then run:
+
+```bash
+npm run dev
+```
+
+The application is available at [http://localhost:3000](http://localhost:3000).
+
+Useful project scripts:
+
+```bash
+npm run lint       # TypeScript check
+npm run build      # Generate Prisma Client and build the frontend into dist/
+npm start          # Start the Express application server
+npm run db:generate
+npm run db:push
+npm run db:seed
+```
+
+For production, build the image/artifact in a Linux-compatible environment, provide runtime secrets through the host/container environment, and expose the application through a secured web endpoint. Do not copy `.env` into `dist` or bake it into a Docker image.
+
+The current Docker build may require Linux-specific optional dependencies for Tailwind's native binding and OpenSSL for Prisma. Verify `docker build` on the target architecture before deploying an updated image.
+
+## Repository map
 
 ```text
-├── api/                     # Python FastAPI inference server (matching pipeline artifact)
-│   └── main.py              # GET /health, GET /ready, POST /predict
-├── models/                  # ML model artifact storage
-│   └── pipeline_with_preprocessor.pkl # Trained bundle (RF + XGBoost + SHAP)
-├── src/
-│   ├── components/          # React components
-│   │   ├── DashboardView.tsx    # Executive risk intelligence overview
-│   │   ├── ProjectListView.tsx  # Project portfolio with filters & search
-│   │   ├── ProjectDetailModal.tsx # Full statutory record & Stage 7 dispute tracking
-│   │   ├── ProjectFormModal.tsx # Create & edit project records
-│   │   ├── MlSimulatorView.tsx  # Interactive 18-feature inference test bench
-│   │   ├── StageStepper.tsx     # Sequential RFCTLARR stage progress component
-│   │   └── RiskBadge.tsx        # Earthy risk badges (Low, Medium, High)
-│   ├── server/              # Express backend server
-│   │   ├── routes.ts        # /api/projects, /api/seed, /ml/predict proxy
-│   │   └── db.ts            # Supabase PostgreSQL + in-memory store
-│   ├── services/
-│   │   ├── ml18FeatureAdapter.ts # 18-feature derivation & SHAP translation bridge
-│   │   ├── mlPredictor.ts        # Procedural fallback prediction engine
-│   │   └── supabase.ts           # Supabase client initialization
-│   ├── types/               # TypeScript interfaces & types
-│   │   └── project.ts       # Project, ApprovalStage, PredictRequest/Response
-│   └── App.tsx              # Main UI routing and navigation layout
-├── index.html               # Main HTML entry point
-├── package.json             # Node dependencies and build scripts
-└── vite.config.ts           # Vite + Tailwind + Express API plugin configuration
+src/
+  components/       React views and reusable UI
+  context/          User/role context
+  data/             Sample project data
+  server/           Express routes and database adapters
+  services/         Prediction adapter, fallback scorer, Supabase client
+  types/            Shared TypeScript types
+api/main.py         18-feature FastAPI inference service
+ml/                 Legacy/alternate 7-feature model service and CLI
+prisma/             PostgreSQL schema and seed script
+server.ts           Production Express server and dist/ static serving
+vite.config.ts      Vite, Tailwind, and development API middleware
 ```
 
----
+## License
 
-## ⚙️ Environment Variables
-
-Create a `.env` file in the root directory (refer to `.env.example`):
-
-```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
-DATABASE_URL="postgresql://postgres:password@your-db.supabase.co:5432/postgres"
-
-# Machine Learning Inference Service (Live Render URL)
-ML_SERVICE_URL="https://dristi-model.onrender.com/predict"
-
-# Gemini AI assistant (server-side only; do not use a VITE_ prefix)
-GEMINI_API_KEY="your-gemini-api-key"
-```
-
----
-
-## 💻 Local Development Setup
-
-### 1. Frontend & Node API
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server on port 3000
-npm run dev
-
-# Run TypeScript type check
-npm run lint
-
-# Build for production
-npm run build
-```
-
-### 2. Local Python ML Service (Optional)
-
-If you wish to run the model server locally instead of using the Render service:
-
-```bash
-# Install Python dependencies
-pip install fastapi uvicorn scikit-learn xgboost joblib pandas numpy shap
-
-# Start FastAPI server on port 8000
-python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
-```
-
-Set `ML_SERVICE_URL="http://127.0.0.1:8000/predict"` in your `.env` to route predictions locally.
-
----
-
-## 📡 API Endpoints
-
-### Application API (`/api`)
-- `GET /api/projects` - List all land acquisition projects
-- `GET /api/projects/:id` - Retrieve a single project
-- `POST /api/projects` - Create a new project (triggers automated ML prediction)
-- `PUT /api/projects/:id` - Update project details & advance stages sequentially
-- `PATCH /api/projects/:id/arbitration` - Toggle Section 3G(5) Arbitration flag
-- `DELETE /api/projects/:id` - Remove project record (Admin only)
-- `POST /api/seed` - Reset database to reference benchmark dataset
-
-### Machine Learning API (`/ml`)
-- `POST /ml/predict` - Accepts statutory parameters or exact 18-feature JSON schema; returns predicted delay risk level, continuous risk score, and top SHAP attributions.
+No license is currently specified. Add a `LICENSE` file before inviting external contributions or granting reuse rights.
