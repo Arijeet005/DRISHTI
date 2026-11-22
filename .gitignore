@@ -1,2 +1,16 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# AWS SSH private keys
+*.pem
+
+# Build output
+dist/
+
+# Git
+.git
