@@ -150,6 +150,3 @@ server.ts           Production Express server and dist/ static serving
 vite.config.ts      Vite, Tailwind, and development API middleware
 ```
 
-## License
-
-No license is currently specified. Add a `LICENSE` file before inviting external contributions or granting reuse rights.
